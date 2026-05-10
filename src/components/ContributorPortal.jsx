@@ -8,6 +8,7 @@ import {
 import {
   initUmbraClient, initZkProver,
   scanForPayments, claimUtxo, queryEncryptedBalance, withdrawToWallet,
+  registerWithUmbra, checkUmbraRegistration,
 } from '../lib/umbra'
 import { OperationLoader } from './Spinner'
 import { MetricCard } from './MetricCard'
@@ -55,8 +56,14 @@ export function ContributorPortal({ addToast }) {
     setLoadingClient(true)
     const walletAdapter = { publicKey, signTransaction }
     initUmbraClient(walletAdapter)
-      .then(c => {
+      .then(async c => {
         setClient(c)
+        const registered = await checkUmbraRegistration(c).catch(() => false)
+        if (!registered) {
+          try {
+            await registerWithUmbra(c)
+          } catch { /* already registered */ }
+        }
         addToast({ type: 'success', title: 'Umbra ready', message: 'Contributor client connected.' })
       })
       .catch(err => {

@@ -1,4 +1,3 @@
-/* EITHERWAY_CHAINLINK_UI_ALIAS */
 import path from 'path'
 import { fileURLToPath } from 'url'
 const __ewDir = path.dirname(fileURLToPath(import.meta.url))
@@ -7,19 +6,25 @@ import react from '@vitejs/plugin-react'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 export default defineConfig({
-  resolve: { alias: { '@eitherway/chainlink-ui': path.resolve(__ewDir, 'src/lib/chainlink-ui') } },
   plugins: [
     react(),
     nodePolyfills({
-      include: ['buffer', 'crypto', 'stream', 'util'],
+      include: ['buffer', 'crypto', 'stream', 'util', 'events', 'path', 'os'],
       globals: { Buffer: true, global: true, process: true },
     }),
   ],
-  server: {
-    watch: {
-      usePolling: true,
-      interval: 1000,
+  optimizeDeps: {
+    include: ['@umbra-privacy/sdk', '@umbra-privacy/web-zk-prover'],
+    esbuildOptions: {
+      target: 'esnext',
+      define: { global: 'globalThis' },
     },
+  },
+  build: {
+    target: 'esnext',
+    commonjsOptions: { transformMixedEsModules: true },
+  },
+  server: {
     cors: true,
     allowedHosts: true,
   },

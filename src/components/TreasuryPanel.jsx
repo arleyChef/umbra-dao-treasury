@@ -8,6 +8,7 @@ import {
 import {
   initUmbraClient, initZkProver,
   shieldFunds, sendPrivatePayment, queryEncryptedBalance, generateViewingKey,
+  registerWithUmbra, checkUmbraRegistration,
 } from '../lib/umbra'
 import { savePayment, fetchPayments } from '../lib/db'
 import { MetricCard } from './MetricCard'
@@ -52,6 +53,8 @@ export function TreasuryPanel({ addToast }) {
 
   const [client, setClient] = useState(null)
   const [zkProver, setZkProver] = useState(null)
+  const [isRegistered, setIsRegistered] = useState(false)
+  const [registering, setRegistering] = useState(false)
   const [encBalance, setEncBalance] = useState(null)
   const [payments, setPayments] = useState([])
   const [loadingClient, setLoadingClient] = useState(false)
@@ -84,9 +87,28 @@ export function TreasuryPanel({ addToast }) {
     const walletAdapter = { publicKey, signTransaction }
 
     Promise.all([initUmbraClient(walletAdapter), initZkProver()])
-      .then(([c, prover]) => {
+      .then(async ([c, prover]) => {
         setClient(c)
         setZkProver(prover)
+        setShieldMsg('Checking Umbra registration…')
+        // Check if already registered, if not register automatically
+        const registered = await checkUmbraRegistration(c).catch(() => false)
+        if (!registered) {
+          setRegistering(true)
+          setShieldMsg('Registering wallet with Umbra (one-time setup)…')
+          try {
+            await registerWithUmbra(c)
+            setIsRegistered(true)
+            addToast({ type: 'success', title: 'Wallet registered', message: 'One-time Umbra registration complete.' })
+          } catch (err) {
+            addToast({ type: 'warning', title: 'Registration skipped', message: 'May already be registered.' })
+            setIsRegistered(true) // try anyway
+          } finally {
+            setRegistering(false)
+          }
+        } else {
+          setIsRegistered(true)
+        }
         setShieldMsg('')
         addToast({ type: 'success', title: 'Umbra client ready', message: 'Connected to Arcium MPC network.' })
       })

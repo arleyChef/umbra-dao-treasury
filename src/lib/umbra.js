@@ -161,3 +161,28 @@ export async function generateViewingKey(client, year, month) {
     ).join('')
   }
 }
+
+/**
+ * Register the wallet with Umbra (required once per wallet).
+ * Must be called before any shield/send/claim operations.
+ */
+export async function registerWithUmbra(client) {
+  const { getUserRegistrationFunction } = await import('@umbra-privacy/sdk')
+  const register = getUserRegistrationFunction({ client })
+  const result = await register({ confidential: true, anonymous: true })
+  return result
+}
+
+/**
+ * Check if the wallet is already registered with Umbra.
+ */
+export async function checkUmbraRegistration(client) {
+  try {
+    const { getUserRegistrationStatusFunction } = await import('@umbra-privacy/sdk')
+    const checkStatus = getUserRegistrationStatusFunction({ client })
+    const status = await checkStatus()
+    return status?.isRegistered ?? false
+  } catch {
+    return false
+  }
+}
